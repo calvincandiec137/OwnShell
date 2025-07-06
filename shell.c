@@ -95,7 +95,9 @@ int handle_builtin(char **args) {
 
 int execute_commands(char **args) {
   if (mkdir(args[1], 0777) == 0) {
-    char *absolute_path = strcat(cwd, args[1]);
+    char *absolute_path = strcat(cwd, "/");
+    absolute_path = strcat(cwd, args[1]);
+    chdir(cwd);
   } else {
     perror("Custom command");
   }
