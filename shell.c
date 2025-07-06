@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -30,10 +32,10 @@ void shell_loop() {
     if (commands[0] == NULL)
       continue;
 
-    if (strcmp(commands[0], "cd") == 0) {
-      handle_builtin(commands);
-    } else {
+    if (strcmp(commands[0], "mac") == 0) {
       execute_commands(commands);
+    } else {
+      handle_builtin(commands);
     }
 
     free(command);
@@ -61,26 +63,41 @@ char **parse_line(char *line) {
 }
 
 int handle_builtin(char **args) {
-  if (args[1] == NULL) {
-    fprintf(stderr, "cd: expected argument\n");
-    return 1;
-  }
-  if (chdir(args[1]) != 0) {
-    perror("test");
-    return 1;
-  }
-  return 0;
-}
 
-int execute_commands(char **args) {
+  if (strcmp(args[0], "cd") == 0) {
+    if (args[1] == NULL) {
+      fprintf(stderr, "cd: expected argument\n");
+      return 1;
+    }
+    if (chdir(args[1]) != 0) {
+      perror("cd");
+    }
+    return 1;
+  }
+
+  if (strcmp(args[0], "exit") == 0) {
+    exit(0);
+  }
+
   pid_t pid = fork();
-
   if (pid == 0) {
     execvp(args[0], args);
+    perror("exec");
+    exit(1);
   } else if (pid > 0) {
     wait(NULL);
   } else {
-    perror("Fork issue.");
+    perror("fork");
+  }
+
+  return 1;
+}
+
+int execute_commands(char **args) {
+  if (mkdir(args[1], 0777) == 0) {
+    char *absolute_path = strcat(cwd, args[1]);
+  } else {
+    perror("Custom command");
   }
   return 0;
 }
