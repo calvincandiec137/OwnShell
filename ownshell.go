@@ -8,7 +8,27 @@ import (
 	"strings"
 )
 
+type Stack[T any] struct{
+	items[]T
+}
+
+func (s *Stack[T]) Push(items T){
+	s.items = append(s.items, items)
+}
+
+func (s *Stack[T]) Pop() T {
+	item := s.items[len(s.items)-1]
+	s.items = s.items[:len(s.items)-1]
+	return item
+}
+
+func (s *Stack[T]) Peek() T {
+	return s.items[len(s.items)-1]
+}
+var s Stack[string]
 func main() {
+
+	s.Push("exit")
 	shellLoop()
 }
 
@@ -29,26 +49,40 @@ func shellLoop() {
 		args := strings.Fields(line)
 
 		if args[0] == "mac" {
-			executeCommands(args)
+			status := executeCommands(args)
+			if status{
+				s.Push("mac")
+			}
 		} else {
-			handleBuiltin(args)
+			status := handleBuiltin(args)
+			if status{
+				s.Push(line)
+			}
 		}
 	}
 }
 
-func handleBuiltin(args []string) {
+func handleBuiltin(args []string) bool {
 	switch args[0] {
 	case "cd":
 		if len(args) < 2 {
 			fmt.Fprintln(os.Stderr, "cd: expected argument")
-			return
+			return false
 		}
 		err := os.Chdir(args[1])
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "cd:", err)
+			return false
+		}else{
+			return true
 		}
 	case "exit":
+		for i := 0; i < len(s.items); i++ {
+			item := s.Pop()
+			fmt.Printf("%s",item)
+		}
 		os.Exit(0)
+		return true
 	default:
 		cmd := exec.Command(args[0], args[1:]...)
 		cmd.Stdin = os.Stdin
@@ -57,22 +91,27 @@ func handleBuiltin(args []string) {
 		err := cmd.Run()
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "exec:", err)
+			return false
+		}else{
+			return true
 		}
 	}
 }
 
-func executeCommands(args []string) {
+func executeCommands(args []string) bool {
 	if len(args) < 2 {
 		fmt.Fprintln(os.Stderr, "mac: expected directory name")
-		return
+		return false
 	}
 	err := os.Mkdir(args[1], 0777)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Custom command:", err)
-		return
+		return false
 	}
 	err = os.Chdir(args[1])
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "chdir:", err)
+		return false
 	}
+	return true
 }
